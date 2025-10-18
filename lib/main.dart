@@ -2,8 +2,14 @@ import 'package:flutter/material.dart';
 import 'models/course.dart';
 import 'pages/add_course_page.dart';
 import 'pages/course_detail_page.dart';
+import 'services/supabase_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Supabase
+  await SupabaseService.instance.initialize();
+  
   runApp(const MyApp());
 }
 
@@ -31,7 +37,7 @@ class CoursesHomePage extends StatefulWidget {
 }
 
 class _CoursesHomePageState extends State<CoursesHomePage> {
-  List<Course> _courses = [];
+  final List<Course> _courses = [];
 
   void _addCourse(Course course) {
     setState(() {
@@ -107,11 +113,11 @@ class _CoursesHomePageState extends State<CoursesHomePage> {
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
                     leading: Icon(
-                      course.pdfPath != null 
-                          ? Icons.picture_as_pdf 
+                      course.files.isNotEmpty 
+                          ? Icons.folder_outlined
                           : Icons.book_outlined,
-                      color: course.pdfPath != null 
-                          ? Colors.red 
+                      color: course.files.isNotEmpty 
+                          ? Colors.blue 
                           : null,
                     ),
                     title: Text(course.name),
@@ -119,10 +125,10 @@ class _CoursesHomePageState extends State<CoursesHomePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Course ID: ${course.id}'),
-                        if (course.pdfPath != null)
-                          const Text(
-                            'PDF attached',
-                            style: TextStyle(
+                        if (course.files.isNotEmpty)
+                          Text(
+                            '${course.files.length} file(s) attached',
+                            style: const TextStyle(
                               color: Colors.green,
                               fontSize: 12,
                             ),
