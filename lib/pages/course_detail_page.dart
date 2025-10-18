@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../models/course.dart';
 import '../widgets/summary_notes_widget.dart';
 import '../services/supabase_service.dart';
+import 'summary_view_page.dart';
 
 class CourseDetailPage extends StatelessWidget {
   final Course course;
@@ -48,7 +49,15 @@ class CourseDetailPage extends StatelessWidget {
                   : 'Get a comprehensive overview of the course material',
               onTap: () {
                 if (course.hasSummary) {
-                  _showAIContent(context, 'Summary', course.summaryFile!);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SummaryViewPage(
+                        file: course.summaryFile!,
+                        title: 'Summary - ${course.name}',
+                      ),
+                    ),
+                  );
                 } else {
                   _showComingSoon(context, 'Summary');
                 }
