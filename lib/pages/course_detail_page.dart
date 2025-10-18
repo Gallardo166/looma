@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
 import '../models/course.dart';
+import '../widgets/summary_notes_widget.dart';
+import '../services/supabase_service.dart';
 
 class CourseDetailPage extends StatelessWidget {
   final Course course;
@@ -561,26 +564,61 @@ class CourseDetailPage extends StatelessWidget {
         title: Text('$title - AI Generated'),
         content: SizedBox(
           width: double.maxFinite,
-          height: 400,
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: SelectableText(
-                    _getFileContent(file),
-                    style: const TextStyle(fontSize: 14),
+          height: 500,
+          child: FutureBuilder<String>(
+            future: _getFileContent(file),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Loading content...'),
+                    ],
                   ),
-                ),
-              ),
-              if (file.publicUrl != null) ...[
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () => _openFile(context, file),
-                  icon: const Icon(Icons.open_in_new, size: 16),
-                  label: const Text('Open in Browser'),
-                ),
-              ],
-            ],
+                );
+              }
+              
+              if (snapshot.hasError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text('Error loading content: ${snapshot.error}'),
+                    ],
+                  ),
+                );
+              }
+              
+              final content = snapshot.data ?? 'No content available';
+              
+              return Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: title == 'Summary' 
+                        ? SummaryNotesWidget(summaryJson: content)
+                        : SelectableText(
+                            content,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                    ),
+                  ),
+                  if (file.publicUrl != null) ...[
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () => _openFile(context, file),
+                      icon: const Icon(Icons.open_in_new, size: 16),
+                      label: const Text('Open in Browser'),
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
         ),
         actions: [
@@ -606,12 +644,38 @@ class CourseDetailPage extends StatelessWidget {
     }
   }
 
-  String _getFileContent(CourseFile file) {
-    // This is a placeholder - in a real implementation, you would fetch the content
-    // For now, return a message indicating the content is available
-    return 'AI-generated content is available at: ${file.publicUrl ?? 'File path: ${file.filePath}'}\n\n'
-           'File size: ${_formatFileSize(file.fileSize)}\n'
-           'File type: ${file.fileType.toUpperCase()}';
+  Future<String> _getFileContent(CourseFile file) async {
+    try {
+      // If we have a public URL, try to fetch the content directly
+      if (file.publicUrl != null) {
+        final response = await http.get(Uri.parse(file.publicUrl!));
+        if (response.statusCode == 200) {
+          return response.body;
+        }
+      }
+      
+      // Fallback: try to get content from Supabase Storage using file path
+      if (file.filePath.isNotEmpty) {
+        final supabase = SupabaseService.instance.client;
+        final response = await supabase.storage
+            .from(SupabaseService.courseFilesBucket)
+            .download(file.filePath);
+        
+        if (response != null) {
+          return String.fromCharCodes(response);
+        }
+      }
+      
+      // If all else fails, return a message
+      return 'AI-generated content is available at: ${file.publicUrl ?? 'File path: ${file.filePath}'}\n\n'
+             'File size: ${_formatFileSize(file.fileSize)}\n'
+             'File type: ${file.fileType.toUpperCase()}';
+    } catch (e) {
+      return 'Error loading content: $e\n\n'
+             'Content available at: ${file.publicUrl ?? 'File path: ${file.filePath}'}\n'
+             'File size: ${_formatFileSize(file.fileSize)}\n'
+             'File type: ${file.fileType.toUpperCase()}';
+    }
   }
 
   void _showComingSoon(BuildContext context, String feature) {
