@@ -1,6 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:mime/mime.dart';
+import 'package:uuid/uuid.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
+
+  final supabaseUrl = dotenv.env['SUPABASE_URL'];
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
+
+  if (supabaseUrl == null || supabaseUrl.isEmpty ||
+      supabaseAnonKey == null || supabaseAnonKey.isEmpty) {
+    // Fail early with a readable error in debug
+    throw Exception('Missing SUPABASE_URL or SUPABASE_ANON_KEY in .env');
+  }
+
+  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+
   runApp(const MyApp());
 }
 
@@ -30,93 +49,276 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const AuthGate(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<AuthGate> createState() => _AuthGateState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _AuthGateState extends State<AuthGate> {
+  @override
+  Widget build(BuildContext context) {
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session == null) {
+      return const AuthScreen();
+    }
+    return const UploadScreen();
+  }
+}
 
-  void _incrementCounter() {
+class AuthScreen extends StatefulWidget {
+  const AuthScreen({super.key});
+
+  @override
+  State<AuthScreen> createState() => _AuthScreenState();
+}
+
+class _AuthScreenState extends State<AuthScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _loading = false;
+  String? _error;
+
+  Future<void> _signInOrSignUp() async {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _loading = true;
+      _error = null;
     });
+    try {
+      final auth = Supabase.instance.client.auth;
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+
+      final response = await auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      if (response.session == null) {
+        // Create account if sign-in failed
+        await auth.signUp(email: email, password: password);
+        await auth.signInWithPassword(email: email, password: password);
+      }
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const UploadScreen()),
+      );
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
+      appBar: AppBar(title: const Text('Sign in to continue')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+          children: [
+            TextField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Password'),
+            ),
+            const SizedBox(height: 20),
+            if (_error != null)
+              Text(
+                _error!,
+                style: const TextStyle(color: Colors.red),
+              ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _loading ? null : _signInOrSignUp,
+              child: _loading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Continue'),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
+}
+
+class UploadScreen extends StatefulWidget {
+  const UploadScreen({super.key});
+
+  @override
+  State<UploadScreen> createState() => _UploadScreenState();
+}
+
+class _UploadScreenState extends State<UploadScreen> {
+  bool _uploading = false;
+  String? _uploadedUrl;
+  String? _error;
+
+  Future<void> _pickAndUpload() async {
+    setState(() {
+      _uploading = true;
+      _error = null;
+      _uploadedUrl = null;
+    });
+    try {
+      // Lazy import to avoid desktop/web specific warnings
+      // ignore: avoid_dynamic_calls
+      final filePicker = await _loadFilePicker();
+      final result = await filePicker();
+      if (result == null) {
+        setState(() => _uploading = false);
+        return;
+      }
+
+      final fileBytes = result.bytes!;
+      final fileName = result.name;
+
+      final bucket = dotenv.env['SUPABASE_BUCKET'] ?? 'uploads';
+      final storage = Supabase.instance.client.storage;
+      final String path = _generateObjectPath(fileName);
+
+      final mimeType = _detectMimeType(fileName);
+
+      final uploadResponse = await storage.from(bucket).uploadBinary(
+            path,
+            fileBytes,
+            fileOptions: FileOptions(contentType: mimeType, upsert: true),
+          );
+
+      final publicUrl = storage.from(bucket).getPublicUrl(path);
+
+      setState(() {
+        _uploadedUrl = publicUrl;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      setState(() {
+        _uploading = false;
+      });
+    }
+  }
+
+  // Separating these helpers keeps the widget readable
+  Future<Future<dynamic> Function()> _loadFilePicker() async {
+    // Defer import so tree-shaking selects platform implementation
+    // ignore: import_of_legacy_library_into_null_safe
+    // ignore: avoid_dynamic_calls
+    return () async {
+      // Dynamically import file_picker
+      // Workaround for code generation: call through a closure
+      return await _pickFile();
+    };
+  }
+
+  Future<_PickedFile?> _pickFile() async {
+    // Using package:file_picker interface
+    try {
+      // ignore: depend_on_referenced_packages
+      final filePicker = await FilePicker.platform.pickFiles(withData: true);
+      if (filePicker == null || filePicker.files.isEmpty) return null;
+      final f = filePicker.files.first;
+      if (f.bytes == null) return null;
+      return _PickedFile(name: f.name, bytes: f.bytes!);
+    } catch (_) {
+      rethrow;
+    }
+  }
+
+  String _generateObjectPath(String originalName) {
+    final id = const Uuid().v4();
+    final sanitized = originalName.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    return 'uploads/$id-$sanitized';
+  }
+
+  String _detectMimeType(String fileName) {
+    final type = lookupMimeType(fileName);
+    return type ?? 'application/octet-stream';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Upload to Supabase Storage'),
+        actions: [
+          IconButton(
+            onPressed: () async {
+              await Supabase.instance.client.auth.signOut();
+              if (!mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const AuthScreen()),
+                (route) => false,
+              );
+            },
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sign out',
+          )
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ElevatedButton.icon(
+              onPressed: _uploading ? null : _pickAndUpload,
+              icon: _uploading
+                  ? const SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.upload_file),
+              label: const Text('Pick file and upload'),
+            ),
+            const SizedBox(height: 16),
+            if (_error != null)
+              Text(_error!, style: const TextStyle(color: Colors.red)),
+            if (_uploadedUrl != null) ...[
+              const Text('Uploaded file is publicly accessible at:'),
+              const SizedBox(height: 8),
+              SelectableText(
+                _uploadedUrl!,
+                style: const TextStyle(color: Colors.blue),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Lightweight model to pass picked data around
+class _PickedFile {
+  final String name;
+  final List<int> bytes;
+
+  _PickedFile({required this.name, required this.bytes});
 }
