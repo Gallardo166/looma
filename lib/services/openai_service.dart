@@ -69,18 +69,39 @@ class OpenAIService {
   /// Generate a comprehensive summary of the course content
   Future<String> _generateSummary(String courseName, String content) async {
     final prompt = '''
-Create a comprehensive summary for the course "$courseName" based on the following content:
+You are an AI that summarizes university lecture notes, from $content. 
+- Extract the main topic.
+- Generate concise bullet points under each subtopic.
+- Create 3-5 review questions for topic.
+- Provide a 2-3 sentence summary at the end.
+- Use the Cornell Notes format: Cue column, Notes column, Summary.
 
-$content
+Rules:
+- Only use information present in $content
+- Keep numbers and dates exactly as they appear
+- Ignore images, headers, and footers
+- Return output strictly in the following JSON format:
 
-Please provide:
-1. A clear overview of the main topics covered
-2. Key concepts and their explanations
-3. Important details and examples
-4. Learning objectives
-5. Practical applications
+{
+  "Topic": "",
+  "Cue": "",
+  "Notes": "",
+  "Summary": ""
+}
 
-Format the summary in a clear, educational manner suitable for students.
+Here is an example:
+{
+  "Topic": "CS2030S Good-to-Knows",
+
+  "Cue": 
+  "- What are the primitive type hierarchies in Java?\n- What are primitive wrapper classes?\n- What is the difference between method overriding and overloading?\n- What is the function of 'final' in Java classes, methods, and fields?\n- What are the rules for abstract classes and interfaces?\n- What are the exception handling rules in method overriding?\n- What is a bridge method and when is it used?",
+
+  "Notes": 
+  "- Primitive type hierarchy: byte <: short <: int <: long <: float <: double; char <: int.\n- Primitive wrapper classes are immutable.\n- A reference value not initialized has the special value 'null'; using it causes NullPointerException.\n- Stack behavior: static methods have no 'this'; non-static and constructors have 'this'. When a method returns, its call frame is removed, but heap memory persists if referenced.\n- Method signature: name + number, type, and order of parameters.\n- Method descriptor = method signature + return type.\n\nOverriding:\n- Must have the same method descriptor.\n- Subclass return type <: parent return type (covariant returns).\n- Return types must be compatible (not for primitives).\n- Cannot override static methods.\n\nOverloading:\n- Methods with same name but different signatures in same class.\n- Can overload static methods and constructors.\n\n'final' keyword:\n- final class → prevents inheritance.\n- final method → prevents overriding.\n- final field → prevents reassignment.\n\nAbstract classes:\n- Cannot be instantiated.\n- Must be declared abstract if it has at least one abstract method.\n- May have no abstract methods.\n\nGenerics and arrays:\n- 'new Pair<S,T>[2]' and 'new T[2]' are illegal.\n- 'T[] array;' is allowed.\n\nInterfaces:\n- Classes can implement interfaces (e.g., class B implements I).\n\nAutoboxing/unboxing:\n- Integer i = 4 (autoboxing), int j = 1 (unboxing).\n\nException handling:\n- Catch blocks: handle subtypes before supertypes; otherwise causes compilation error.\n- Overriding methods must throw the same or a more specific checked exception, following Liskov Substitution Principle.\n\nPolymorphism and type casting:\n- Widening conversions (e.g., I i1 = new B();) compile.\n- Some casts (e.g., A a = (A) new B();) may not compile if no subtype relationship.\n\nBridge methods:\n- Used by compiler to ensure correct overriding with generics (e.g., B::fun(String) overrides A::fun(T)).\n- Bridge method calls the correct version (A::fun(Object)) when generics are involved.",
+
+  "Summary": 
+  "This section summarizes Java fundamentals relevant to CS2030S, including primitive types, method behavior, inheritance rules, and exception handling. It distinguishes overriding from overloading, explains how 'final' and 'abstract' modify inheritance, and clarifies the role of bridge methods in generics. The key takeaway is understanding how Java enforces type safety and polymorphism rules at both compile-time and runtime."
+}
 ''';
 
     final response = await _makeChatRequest(prompt);
@@ -105,6 +126,7 @@ Please provide a hierarchical mindmap in the following format:
   - Subtopic 2.2
 
 Use indentation with dashes to show the hierarchy. Focus on the most important concepts and their relationships.
+
 ''';
 
     final response = await _makeChatRequest(prompt);
