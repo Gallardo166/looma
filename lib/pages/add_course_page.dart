@@ -20,19 +20,59 @@ class _AddCoursePageState extends State<AddCoursePage> {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf'],
+        allowMultiple: false,
+        withData: true, // Load file data for web compatibility
       );
 
-      if (result != null) {
-        setState(() {
-          _selectedPdfPath = result.files.single.path;
-          _selectedPdfName = result.files.single.name;
-        });
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        
+        // Check if we have a valid name
+        if (file.name.isNotEmpty) {
+          // For web platforms, use bytes instead of path
+          String fileIdentifier;
+          if (file.path != null && file.path!.isNotEmpty) {
+            // Desktop/mobile platforms - use path
+            fileIdentifier = file.path!;
+          } else {
+            // Web platforms - use bytes hash as identifier
+            if (file.bytes != null) {
+              fileIdentifier = 'web:${file.bytes!.length}_${file.name}';
+            } else {
+              fileIdentifier = 'selected:${file.name}';
+            }
+          }
+          
+          setState(() {
+            _selectedPdfPath = fileIdentifier;
+            _selectedPdfName = file.name;
+          });
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('PDF selected: ${file.name}'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Unable to access the selected file. Please try again.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error picking file: $e'),
+            content: Text('Error selecting file: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -49,10 +89,21 @@ class _AddCoursePageState extends State<AddCoursePage> {
 
   void _saveCourse() {
     if (_formKey.currentState!.validate()) {
+      // Validate PDF path if one was selected
+      if (_selectedPdfPath != null && _selectedPdfPath!.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Invalid PDF file. Please select a different file.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       final course = Course(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         name: _courseNameController.text.trim(),
-        pdfPath: _selectedPdfPath,
+        pdfPath: _selectedPdfPath?.isNotEmpty == true ? _selectedPdfPath : null,
       );
       Navigator.pop(context, course);
     }
