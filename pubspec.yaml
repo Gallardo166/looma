@@ -38,6 +38,9 @@ dependencies:
   supabase_flutter: ^2.5.6
   path: ^1.9.0
   url_launcher: ^6.3.1
+  http: ^1.2.2
+  pdf: ^3.10.7
+  mime: ^1.0.5
 
 dev_dependencies:
   flutter_test:

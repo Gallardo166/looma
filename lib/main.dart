@@ -113,12 +113,16 @@ class _CoursesHomePageState extends State<CoursesHomePage> {
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
                     leading: Icon(
-                      course.files.isNotEmpty 
-                          ? Icons.folder_outlined
-                          : Icons.book_outlined,
-                      color: course.files.isNotEmpty 
-                          ? Colors.blue 
-                          : null,
+                      course.hasAIContent 
+                          ? Icons.psychology_outlined
+                          : course.files.isNotEmpty 
+                              ? Icons.folder_outlined
+                              : Icons.book_outlined,
+                      color: course.hasAIContent 
+                          ? Colors.purple 
+                          : course.files.isNotEmpty 
+                              ? Colors.blue 
+                              : null,
                     ),
                     title: Text(course.name),
                     subtitle: Column(
@@ -131,6 +135,15 @@ class _CoursesHomePageState extends State<CoursesHomePage> {
                             style: const TextStyle(
                               color: Colors.green,
                               fontSize: 12,
+                            ),
+                          ),
+                        if (course.hasAIContent)
+                          Text(
+                            'AI-enhanced with summary, mindmap & audio',
+                            style: const TextStyle(
+                              color: Colors.purple,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                       ],

@@ -29,14 +29,26 @@ class CourseDetailPage extends StatelessWidget {
               const SizedBox(height: 24),
             ],
             
+            // AI-Generated Content Section
+            if (course.hasAIContent) ...[
+              _buildAIContentSection(context),
+              const SizedBox(height: 24),
+            ],
+            
             // Summary Section
             _buildSection(
               context,
               title: 'Summary of Content',
               icon: Icons.summarize_outlined,
-              description: 'Get a comprehensive overview of the course material',
+              description: course.hasSummary 
+                  ? 'AI-generated comprehensive overview of the course material'
+                  : 'Get a comprehensive overview of the course material',
               onTap: () {
-                _showComingSoon(context, 'Summary');
+                if (course.hasSummary) {
+                  _showAIContent(context, 'Summary', course.summaryFile!);
+                } else {
+                  _showComingSoon(context, 'Summary');
+                }
               },
             ),
             const SizedBox(height: 16),
@@ -46,9 +58,15 @@ class CourseDetailPage extends StatelessWidget {
               context,
               title: 'Mindmap of Content',
               icon: Icons.account_tree_outlined,
-              description: 'Visual representation of course concepts and connections',
+              description: course.hasMindmap
+                  ? 'AI-generated visual representation of course concepts'
+                  : 'Visual representation of course concepts and connections',
               onTap: () {
-                _showComingSoon(context, 'Mindmap');
+                if (course.hasMindmap) {
+                  _showAIContent(context, 'Mindmap', course.mindmapFile!);
+                } else {
+                  _showComingSoon(context, 'Mindmap');
+                }
               },
             ),
             const SizedBox(height: 16),
@@ -70,9 +88,15 @@ class CourseDetailPage extends StatelessWidget {
               context,
               title: 'Audio Recap',
               icon: Icons.record_voice_over_outlined,
-              description: 'Listen to audio summaries and key points',
+              description: course.hasAudio
+                  ? 'AI-generated audio summary of key points'
+                  : 'Listen to audio summaries and key points',
               onTap: () {
-                _showComingSoon(context, 'Audio Recap');
+                if (course.hasAudio) {
+                  _playAudioFile(context, course.audioFile!);
+                } else {
+                  _showComingSoon(context, 'Audio Recap');
+                }
               },
             ),
           ],
@@ -386,6 +410,208 @@ class CourseDetailPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildAIContentSection(BuildContext context) {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.psychology_outlined,
+                    color: Colors.purple.shade700,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'AI-Generated Content',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.purple.shade700,
+                        ),
+                      ),
+                      Text(
+                        'Automatically generated study materials',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // AI Content Items
+            if (course.hasSummary) ...[
+              _buildAIContentItem(
+                context,
+                title: 'Summary',
+                icon: Icons.summarize_outlined,
+                description: 'Comprehensive overview of course material',
+                onTap: () => _showAIContent(context, 'Summary', course.summaryFile!),
+              ),
+              const SizedBox(height: 8),
+            ],
+            
+            if (course.hasMindmap) ...[
+              _buildAIContentItem(
+                context,
+                title: 'Mindmap',
+                icon: Icons.account_tree_outlined,
+                description: 'Visual representation of concepts and connections',
+                onTap: () => _showAIContent(context, 'Mindmap', course.mindmapFile!),
+              ),
+              const SizedBox(height: 8),
+            ],
+            
+            if (course.hasAudio) ...[
+              _buildAIContentItem(
+                context,
+                title: 'Audio Summary',
+                icon: Icons.record_voice_over_outlined,
+                description: 'Listen to key points and concepts',
+                onTap: () => _playAudioFile(context, course.audioFile!),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAIContentItem(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required String description,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.purple.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.purple.shade200),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: Colors.purple.shade600,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Colors.purple.shade400,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAIContent(BuildContext context, String title, CourseFile file) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('$title - AI Generated'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: SelectableText(
+                    _getFileContent(file),
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              ),
+              if (file.publicUrl != null) ...[
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => _openFile(context, file),
+                  icon: const Icon(Icons.open_in_new, size: 16),
+                  label: const Text('Open in Browser'),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _playAudioFile(BuildContext context, CourseFile file) {
+    if (file.publicUrl != null) {
+      _openFile(context, file);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Audio file not available'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+
+  String _getFileContent(CourseFile file) {
+    // This is a placeholder - in a real implementation, you would fetch the content
+    // For now, return a message indicating the content is available
+    return 'AI-generated content is available at: ${file.publicUrl ?? 'File path: ${file.filePath}'}\n\n'
+           'File size: ${_formatFileSize(file.fileSize)}\n'
+           'File type: ${file.fileType.toUpperCase()}';
   }
 
   void _showComingSoon(BuildContext context, String feature) {

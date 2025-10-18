@@ -85,53 +85,29 @@ class _AddCoursePageState extends State<AddCoursePage> {
         final courseId = DateTime.now().millisecondsSinceEpoch.toString();
         final courseName = _courseNameController.text.trim();
 
-        List<CourseFile> uploadedFiles = [];
+        Course course;
 
         if (_selectedFiles.isNotEmpty) {
-          _uploadStatus = 'Uploading files...';
-          
-          final uploadResults = await _fileUploadService.uploadMultipleFiles(
-            files: _selectedFiles,
+          // Use AI processing for complete course creation
+          course = await _fileUploadService.processCourseWithAI(
             courseId: courseId,
-            onProgress: (uploaded, total) {
+            courseName: courseName,
+            files: _selectedFiles,
+            onProgress: (step, progress) {
               setState(() {
-                _uploadProgress = uploaded / total;
-                _uploadStatus = 'Uploading files... ($uploaded/$total)';
+                _uploadProgress = progress;
+                _uploadStatus = step;
               });
             },
           );
-
-          // Convert upload results to CourseFile objects
-          for (int i = 0; i < uploadResults.length; i++) {
-            final result = uploadResults[i];
-            final file = _selectedFiles[i];
-            
-            if (result.success) {
-              uploadedFiles.add(CourseFile(
-                fileName: result.fileName,
-                filePath: result.filePath,
-                publicUrl: result.publicUrl,
-                fileType: _getFileType(file.name),
-                fileSize: file.size,
-              ));
-            } else {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Failed to upload ${file.name}: ${result.error}'),
-                    backgroundColor: Colors.orange,
-                  ),
-                );
-              }
-            }
-          }
+        } else {
+          // Create course without files
+          course = Course(
+            id: courseId,
+            name: courseName,
+            files: [],
+          );
         }
-
-        final course = Course(
-          id: courseId,
-          name: courseName,
-          files: uploadedFiles,
-        );
 
         if (mounted) {
           Navigator.pop(context, course);
@@ -157,32 +133,6 @@ class _AddCoursePageState extends State<AddCoursePage> {
     }
   }
 
-  String _getFileType(String fileName) {
-    final extension = fileName.split('.').last.toLowerCase();
-    switch (extension) {
-      case 'pdf':
-        return 'pdf';
-      case 'doc':
-      case 'docx':
-        return 'document';
-      case 'txt':
-        return 'text';
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
-      case 'gif':
-        return 'image';
-      case 'mp4':
-      case 'avi':
-      case 'mov':
-        return 'video';
-      case 'mp3':
-      case 'wav':
-        return 'audio';
-      default:
-        return 'file';
-    }
-  }
 
   IconData _getFileIcon(String fileName) {
     final extension = fileName.split('.').last.toLowerCase();

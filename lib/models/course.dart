@@ -37,12 +37,18 @@ class Course {
   final String name;
   final List<CourseFile> files;
   final String? pdfPath; // Keep for backward compatibility
+  final CourseFile? summaryFile;
+  final CourseFile? mindmapFile;
+  final CourseFile? audioFile;
 
   Course({
     required this.id,
     required this.name,
     this.files = const [],
     this.pdfPath, // Deprecated: use files instead
+    this.summaryFile,
+    this.mindmapFile,
+    this.audioFile,
   });
 
   // Helper getter for backward compatibility
@@ -54,9 +60,15 @@ class Course {
   // Helper getter to get all non-PDF files
   List<CourseFile> get otherFiles => files.where((file) => file.fileType.toLowerCase() != 'pdf').toList();
 
+  // Helper getters for AI-generated content
+  bool get hasAIContent => summaryFile != null || mindmapFile != null || audioFile != null;
+  bool get hasSummary => summaryFile != null;
+  bool get hasMindmap => mindmapFile != null;
+  bool get hasAudio => audioFile != null;
+
   @override
   String toString() {
-    return 'Course(id: $id, name: $name, files: ${files.length}, pdfPath: $pdfPath)';
+    return 'Course(id: $id, name: $name, files: ${files.length}, hasAIContent: $hasAIContent)';
   }
 
   @override
@@ -66,9 +78,16 @@ class Course {
            other.id == id && 
            other.name == name && 
            other.files == files &&
-           other.pdfPath == pdfPath;
+           other.pdfPath == pdfPath &&
+           other.summaryFile == summaryFile &&
+           other.mindmapFile == mindmapFile &&
+           other.audioFile == audioFile;
   }
 
   @override
-  int get hashCode => id.hashCode ^ name.hashCode ^ files.hashCode ^ (pdfPath?.hashCode ?? 0);
+  int get hashCode => id.hashCode ^ name.hashCode ^ files.hashCode ^ 
+                     (pdfPath?.hashCode ?? 0) ^ 
+                     (summaryFile?.hashCode ?? 0) ^ 
+                     (mindmapFile?.hashCode ?? 0) ^ 
+                     (audioFile?.hashCode ?? 0);
 }
