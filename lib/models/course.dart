@@ -39,6 +39,7 @@ class Course {
   final String? pdfPath; // Keep for backward compatibility
   final CourseFile? summaryFile;
   final CourseFile? mindmapFile;
+  final CourseFile? quizFile;
   final CourseFile? audioFile;
 
   Course({
@@ -48,6 +49,7 @@ class Course {
     this.pdfPath, // Deprecated: use files instead
     this.summaryFile,
     this.mindmapFile,
+    this.quizFile,
     this.audioFile,
   });
 
@@ -61,9 +63,10 @@ class Course {
   List<CourseFile> get otherFiles => files.where((file) => file.fileType.toLowerCase() != 'pdf').toList();
 
   // Helper getters for AI-generated content
-  bool get hasAIContent => summaryFile != null || mindmapFile != null || audioFile != null;
+  bool get hasAIContent => summaryFile != null || mindmapFile != null || quizFile != null || audioFile != null;
   bool get hasSummary => summaryFile != null;
   bool get hasMindmap => mindmapFile != null;
+  bool get hasQuiz => quizFile != null;
   bool get hasAudio => audioFile != null;
 
   @override
@@ -81,6 +84,7 @@ class Course {
            other.pdfPath == pdfPath &&
            other.summaryFile == summaryFile &&
            other.mindmapFile == mindmapFile &&
+           other.quizFile == quizFile &&
            other.audioFile == audioFile;
   }
 
@@ -89,5 +93,6 @@ class Course {
                      (pdfPath?.hashCode ?? 0) ^ 
                      (summaryFile?.hashCode ?? 0) ^ 
                      (mindmapFile?.hashCode ?? 0) ^ 
+                     (quizFile?.hashCode ?? 0) ^ 
                      (audioFile?.hashCode ?? 0);
 }

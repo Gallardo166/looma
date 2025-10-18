@@ -6,6 +6,7 @@ import '../config/openai_config.dart';
 class AIProcessingResult {
   final String summary;
   final String mindmap;
+  final String quiz;
   final Uint8List? audioBytes;
   final bool success;
   final String? error;
@@ -13,6 +14,7 @@ class AIProcessingResult {
   AIProcessingResult({
     required this.summary,
     required this.mindmap,
+    required this.quiz,
     this.audioBytes,
     required this.success,
     this.error,
@@ -29,7 +31,7 @@ class OpenAIService {
     'Authorization': 'Bearer ${OpenAIConfig.apiKey}',
   };
 
-  /// Process uploaded files and generate summary, mindmap, and audio
+  /// Process uploaded files and generate summary, mindmap, quiz, and audio
   Future<AIProcessingResult> processCourseFiles({
     required String courseName,
     required String extractedText,
@@ -44,6 +46,10 @@ class OpenAIService {
       
       // Generate mindmap
       final mindmap = await _generateMindmap(courseName, extractedText);
+      onProgress?.call('Generating quiz questions...');
+      
+      // Generate quiz
+      final quiz = await _generateQuiz(courseName, extractedText);
       onProgress?.call('Generating audio summary...');
       
       // Generate audio summary
@@ -53,6 +59,7 @@ class OpenAIService {
       return AIProcessingResult(
         summary: summary,
         mindmap: mindmap,
+        quiz: quiz,
         audioBytes: audioBytes,
         success: true,
       );
@@ -60,6 +67,7 @@ class OpenAIService {
       return AIProcessingResult(
         summary: '',
         mindmap: '',
+        quiz: '',
         success: false,
         error: e.toString(),
       );
@@ -127,6 +135,42 @@ Please provide a hierarchical mindmap in the following format:
 
 Use indentation with dashes to show the hierarchy. Focus on the most important concepts and their relationships.
 
+''';
+
+    final response = await _makeChatRequest(prompt);
+    return response;
+  }
+
+  /// Generate quiz questions for the course content
+  Future<String> _generateQuiz(String courseName, String content) async {
+    final prompt = '''
+Create 10 multiple-choice questions based on the following course content:
+
+$content
+
+Rules:
+- Generate exactly 10 questions
+- Each question must have 4 answer choices (A, B, C, D)
+- Only one answer should be correct
+- Questions should test understanding of key concepts
+- Include a mix of difficulty levels
+- Return output strictly in the following JSON format:
+
+{
+  "questions": [
+    {
+      "question": "Question text here?",
+      "choices": {
+        "A": "First choice",
+        "B": "Second choice",
+        "C": "Third choice",
+        "D": "Fourth choice"
+      },
+      "correctAnswer": "A",
+      "explanation": "Brief explanation of why this is correct"
+    }
+  ]
+}
 ''';
 
     final response = await _makeChatRequest(prompt);

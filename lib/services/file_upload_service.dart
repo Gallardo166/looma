@@ -177,6 +177,7 @@ class FileUploadService {
 
       CourseFile? summaryFile;
       CourseFile? mindmapFile;
+      CourseFile? quizFile;
       CourseFile? audioFile;
 
       if (textResult.success && textResult.extractedText.isNotEmpty) {
@@ -214,6 +215,16 @@ class FileUploadService {
             );
           }
 
+          // Upload quiz
+          if (aiResult.quiz.isNotEmpty) {
+            quizFile = await _uploadAIGeneratedFile(
+              courseId: courseId,
+              fileName: 'quiz.json',
+              content: aiResult.quiz,
+              fileType: 'json',
+            );
+          }
+
           // Upload audio
           if (aiResult.audioBytes != null) {
             audioFile = await _uploadAIGeneratedAudio(
@@ -233,6 +244,7 @@ class FileUploadService {
         files: uploadedFiles,
         summaryFile: summaryFile,
         mindmapFile: mindmapFile,
+        quizFile: quizFile,
         audioFile: audioFile,
       );
     } catch (e) {

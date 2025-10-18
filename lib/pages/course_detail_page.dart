@@ -5,6 +5,7 @@ import '../models/course.dart';
 import '../widgets/summary_notes_widget.dart';
 import '../services/supabase_service.dart';
 import 'summary_view_page.dart';
+import 'quiz_view_page.dart';
 
 class CourseDetailPage extends StatelessWidget {
   final Course course;
@@ -82,9 +83,23 @@ class CourseDetailPage extends StatelessWidget {
               context,
               title: 'Quizzes',
               icon: Icons.quiz_outlined,
-              description: 'Test your knowledge with interactive quizzes',
+              description: course.hasQuiz
+                  ? 'AI-generated multiple-choice questions to test your knowledge'
+                  : 'Test your knowledge with interactive quizzes',
               onTap: () {
-                _showComingSoon(context, 'Quizzes');
+                if (course.hasQuiz) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => QuizViewPage(
+                        file: course.quizFile!,
+                        title: 'Quiz - ${course.name}',
+                      ),
+                    ),
+                  );
+                } else {
+                  _showComingSoon(context, 'Quizzes');
+                }
               },
             ),
             const SizedBox(height: 16),
