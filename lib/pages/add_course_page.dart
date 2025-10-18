@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import '../models/course.dart';
 
 class AddCoursePage extends StatefulWidget {
@@ -11,12 +12,47 @@ class AddCoursePage extends StatefulWidget {
 class _AddCoursePageState extends State<AddCoursePage> {
   final _formKey = GlobalKey<FormState>();
   final _courseNameController = TextEditingController();
+  String? _selectedPdfPath;
+  String? _selectedPdfName;
+
+  void _pickPdfFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+
+      if (result != null) {
+        setState(() {
+          _selectedPdfPath = result.files.single.path;
+          _selectedPdfName = result.files.single.name;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking file: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _removePdfFile() {
+    setState(() {
+      _selectedPdfPath = null;
+      _selectedPdfName = null;
+    });
+  }
 
   void _saveCourse() {
     if (_formKey.currentState!.validate()) {
       final course = Course(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         name: _courseNameController.text.trim(),
+        pdfPath: _selectedPdfPath,
       );
       Navigator.pop(context, course);
     }
@@ -63,27 +99,91 @@ class _AddCoursePageState extends State<AddCoursePage> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
+                  border: Border.all(
+                    color: _selectedPdfPath != null 
+                        ? Theme.of(context).colorScheme.primary 
+                        : Colors.grey.shade300,
+                    width: _selectedPdfPath != null ? 2 : 1,
+                  ),
                   borderRadius: BorderRadius.circular(8),
+                  color: _selectedPdfPath != null 
+                      ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.1)
+                      : null,
                 ),
-                child: const Column(
-                  children: [
-                    Icon(
-                      Icons.picture_as_pdf,
-                      size: 48,
-                      color: Colors.grey,
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      '<insert pdf>',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
-                        fontStyle: FontStyle.italic,
+                child: _selectedPdfPath != null
+                    ? Column(
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.picture_as_pdf,
+                                size: 32,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _selectedPdfName!,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'PDF file attached',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Theme.of(context).colorScheme.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: _removePdfFile,
+                                icon: const Icon(Icons.close, size: 20),
+                                color: Colors.red,
+                              ),
+                            ],
+                          ),
+                        ],
+                      )
+                    : InkWell(
+                        onTap: _pickPdfFile,
+                        borderRadius: BorderRadius.circular(8),
+                        child: const Column(
+                          children: [
+                            Icon(
+                              Icons.picture_as_pdf,
+                              size: 48,
+                              color: Colors.grey,
+                            ),
+                            SizedBox(height: 12),
+                            Text(
+                              'Tap to attach PDF',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'or drag and drop',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
               ),
               const Spacer(),
               ElevatedButton(

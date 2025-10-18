@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'models/course.dart';
 import 'pages/add_course_page.dart';
+import 'pages/course_detail_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -51,6 +52,15 @@ class _CoursesHomePageState extends State<CoursesHomePage> {
     }
   }
 
+  void _navigateToCourseDetail(Course course) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CourseDetailPage(course: course),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,9 +106,31 @@ class _CoursesHomePageState extends State<CoursesHomePage> {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    leading: const Icon(Icons.book_outlined),
+                    leading: Icon(
+                      course.pdfPath != null 
+                          ? Icons.picture_as_pdf 
+                          : Icons.book_outlined,
+                      color: course.pdfPath != null 
+                          ? Colors.red 
+                          : null,
+                    ),
                     title: Text(course.name),
-                    subtitle: Text('Course ID: ${course.id}'),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Course ID: ${course.id}'),
+                        if (course.pdfPath != null)
+                          const Text(
+                            'PDF attached',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontSize: 12,
+                            ),
+                          ),
+                      ],
+                    ),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () => _navigateToCourseDetail(course),
                   ),
                 );
               },
