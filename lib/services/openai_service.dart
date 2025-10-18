@@ -116,25 +116,44 @@ Here is an example:
     return response;
   }
 
-  /// Generate a mindmap structure for the course content
+  /// Generate a mindmap structure for the course content in Mermaid format
   Future<String> _generateMindmap(String courseName, String content) async {
     final prompt = '''
-Create a detailed mindmap structure for the course "$courseName" based on the following content:
+Create a mind map for "$courseName" from this content: $content
 
-$content
+CRITICAL: Return ONLY the Mermaid code. No explanation, no markdown blocks, no extra text.
 
-Please provide a hierarchical mindmap in the following format:
-- Main Topic 1
-  - Subtopic 1.1
-    - Detail 1.1.1
-    - Detail 1.1.2
-  - Subtopic 1.2
-- Main Topic 2
-  - Subtopic 2.1
-  - Subtopic 2.2
+Format:
+mindmap
+  root((Main Topic))
+    Branch1
+      Item1
+      Item2
+    Branch2
+      Item3
 
-Use indentation with dashes to show the hierarchy. Focus on the most important concepts and their relationships.
+Rules:
+- Start with exactly "mindmap"
+- Use root((Topic Name)) for center
+- 3-5 main branches
+- 2-4 items per branch  
+- Max 3 words per node
+- NO markdown blocks
+- NO explanation text
+- ONLY return the mermaid code
 
+Example:
+mindmap
+  root((Photosynthesis))
+    Light Reactions
+      Chlorophyll
+      ATP Production
+    Calvin Cycle
+      Carbon Fixation
+      Glucose Formation
+    Environmental Factors
+      Light Intensity
+      Temperature
 ''';
 
     final response = await _makeChatRequest(prompt);

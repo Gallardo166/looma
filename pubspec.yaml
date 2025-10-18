@@ -41,6 +41,8 @@ dependencies:
   http: ^1.2.2
   pdf: ^3.10.7
   mime: ^1.0.5
+  webview_flutter: ^4.10.0
+  just_audio: ^0.9.40
 
 dev_dependencies:
   flutter_test:

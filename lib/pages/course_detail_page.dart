@@ -6,6 +6,8 @@ import '../widgets/summary_notes_widget.dart';
 import '../services/supabase_service.dart';
 import 'summary_view_page.dart';
 import 'quiz_view_page.dart';
+import 'mindmap_view_page.dart';
+import 'audio_player_page.dart';
 
 class CourseDetailPage extends StatelessWidget {
   final Course course;
@@ -66,11 +68,19 @@ class CourseDetailPage extends StatelessWidget {
               title: 'Mindmap of Content',
               icon: Icons.account_tree_outlined,
               description: course.hasMindmap
-                  ? 'AI-generated visual representation of course concepts'
+                  ? 'AI-generated interactive mind map with colors'
                   : 'Visual representation of course concepts and connections',
               onTap: () {
                 if (course.hasMindmap) {
-                  _showAIContent(context, 'Mindmap', course.mindmapFile!);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MindmapViewPage(
+                        file: course.mindmapFile!,
+                        title: 'Mind Map - ${course.name}',
+                      ),
+                    ),
+                  );
                 } else {
                   _showComingSoon(context, 'Mindmap');
                 }
@@ -114,7 +124,15 @@ class CourseDetailPage extends StatelessWidget {
                   : 'Listen to audio summaries and key points',
               onTap: () {
                 if (course.hasAudio) {
-                  _playAudioFile(context, course.audioFile!);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AudioPlayerPage(
+                        file: course.audioFile!,
+                        title: 'Audio Summary - ${course.name}',
+                      ),
+                    ),
+                  );
                 } else {
                   _showComingSoon(context, 'Audio Recap');
                 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
 import '../models/course.dart';
 import '../widgets/enhanced_summary_widget.dart';
 
@@ -34,7 +35,13 @@ class _SummaryViewPageState extends State<SummaryViewPage> {
 
     final response = await http.get(Uri.parse(widget.file.publicUrl!));
     if (response.statusCode == 200) {
-      return response.body;
+      // Use bodyBytes with UTF-8 decoding to handle encoding issues
+      try {
+        return utf8.decode(response.bodyBytes, allowMalformed: true);
+      } catch (e) {
+        // Fallback to latin1 if UTF-8 fails
+        return latin1.decode(response.bodyBytes);
+      }
     } else {
       throw Exception('Failed to load file: ${response.statusCode}');
     }
