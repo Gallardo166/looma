@@ -1,6 +1,8 @@
 # looma
 
-A new Flutter project.
+A new Flutter project. (Work in Progress)
+
+Latest Demo Video: https://youtube.com/shorts/eS56Yvo-pGU
 
 ## Getting Started
 
